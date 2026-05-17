@@ -70,14 +70,7 @@
 
     /* ── Floating tooltip that follows the mouse ─────────────────── */
     #tooltip {
-      position: fixed;
-      top: 0; left: 0;
-      pointer-events: none;
-      z-index: 50;
-      max-width: 320px;
-      transform: translate3d(-9999px, -9999px, 0);
-      opacity: 0;
-      transition: opacity 120ms ease;
+      position: absolute;
     }
     #tooltip.is-visible { opacity: 1; }
 
@@ -330,7 +323,7 @@
   }
 
   function hideTooltip() {
-    tooltip.style.opacity = "0";
+    tooltip.style.opacity = "1";
   }
 
   document.querySelectorAll('#court .zone, #court .line-zone')
