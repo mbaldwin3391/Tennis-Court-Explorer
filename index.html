@@ -7,16 +7,98 @@
   <title>Tennis Court Explorer</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-        }
-      }
+<script>
+  const INFO = {
+    "alley-top": {
+      name: "Doubles Alley",
+      text: "The 4.5-ft strip between the singles and doubles sidelines. Only in play during doubles."
+    },
+    "alley-bottom": {
+      name: "Doubles Alley",
+      text: "Same as above, bottom side."
+    },
+    "sb-left-top": {
+      name: "Service Box · Deuce Court",
+      text: "First serves land here."
+    },
+    "sb-left-bottom": {
+      name: "Service Box · Ad Court",
+      text: "Odd points served here."
+    },
+    "sb-right-top": {
+      name: "Service Box · Ad Court",
+      text: "Opposite-side ad box."
+    },
+    "sb-right-bottom": {
+      name: "Service Box · Deuce Court",
+      text: "Opposite-side deuce box."
+    },
+    "nml-left": {
+      name: "No-Man's Land",
+      text: "Between baseline and service line."
+    },
+    "nml-right": {
+      name: "No-Man's Land",
+      text: "Same area on opposite side."
+    },
+    "net": {
+      name: "The Net",
+      text: "Ball must cross cleanly on serve."
+    },
+    "baseline": {
+      name: "Baseline",
+      text: "Back boundary of the court."
+    },
+    "service-line": {
+      name: "Service Line",
+      text: "21 ft from the net."
     }
-  </script>
-  <style>
+  };
+
+  const tooltip = document.getElementById('tooltip');
+  const ttName = document.getElementById('tt-name');
+  const ttText = document.getElementById('tt-text');
+
+  function showTooltip(id, target) {
+    const data = INFO[id];
+    if (!data) return;
+
+    ttName.textContent = data.name;
+    ttText.textContent = data.text;
+
+    // Position near element instead of cursor
+    const rect = target.getBoundingClientRect();
+
+    tooltip.style.transform = `translate(${rect.right + 10}px, ${rect.top}px)`;
+    tooltip.style.opacity = "1";
+  }
+
+  function hideTooltip() {
+    tooltip.style.opacity = "0";
+  }
+
+  document.querySelectorAll('#court .zone, #court .line-zone')
+    .forEach(el => {
+
+      el.addEventListener('pointerover', (e) => {
+        showTooltip(el.dataset.id, el);
+      });
+
+      el.addEventListener('pointerout', () => {
+        hideTooltip();
+      });
+
+    });
+</script>
+  <style> 
+.zone {
+    pointer-events: all;
+  }
+
+  .line-zone {
+    pointer-events: stroke;
+  }
+
     body { font-family: 'Inter', system-ui, sans-serif; }
 
     /* ── Court frame & polish (matches Scorebug.html palette) ────── */
