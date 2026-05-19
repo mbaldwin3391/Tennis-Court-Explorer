@@ -7,7 +7,7 @@
   <title>Tennis Court Explorer</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script>
+  <script>
     tailwind.config = {
       theme: {
         extend: {
@@ -16,7 +16,7 @@
       }
     }
   </script>
-  <style> 
+  <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
 
     /* ── Court frame & polish (matches Scorebug.html palette) ────── */
@@ -70,7 +70,14 @@
 
     /* ── Floating tooltip that follows the mouse ─────────────────── */
     #tooltip {
-      position: absolute;
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 50;
+      max-width: 320px;
+      transform: translate3d(-9999px, -9999px, 0);
+      opacity: 0;
+      transition: opacity 120ms ease;
     }
     #tooltip.is-visible { opacity: 1; }
 
@@ -255,90 +262,133 @@
     </div>
   </div>
 
- 
-<script>
-  const INFO = {
-    "alley-top": {
-      name: "Doubles Alley",
-      text: "The 4.5-ft strip between the singles and doubles sidelines. Only in play during doubles."
-    },
-    "alley-bottom": {
-      name: "Doubles Alley",
-      text: "Same as above, bottom side."
-    },
-    "sb-left-top": {
-      name: "Service Box · Deuce Court",
-      text: "First serves land here."
-    },
-    "sb-left-bottom": {
-      name: "Service Box · Ad Court",
-      text: "Odd points served here."
-    },
-    "sb-right-top": {
-      name: "Service Box · Ad Court",
-      text: "Opposite-side ad box."
-    },
-    "sb-right-bottom": {
-      name: "Service Box · Deuce Court",
-      text: "Opposite-side deuce box."
-    },
-    "nml-left": {
-      name: "No-Man's Land",
-      text: "Between baseline and service line."
-    },
-    "nml-right": {
-      name: "No-Man's Land",
-      text: "Same area on opposite side."
-    },
-    "net": {
-      name: "The Net",
-      text: "Ball must cross cleanly on serve."
-    },
-    "baseline": {
-      name: "Baseline",
-      text: "Back boundary of the court."
-    },
-    "service-line": {
-      name: "Service Line",
-      text: "21 ft from the net."
+  <script>
+    const INFO = {
+      "alley-top": {
+        name: "Doubles Alley",
+        text: "The 4.5-ft strip between the singles and doubles sidelines. Only in play during doubles — a ball landing here is out in singles."
+      },
+      "alley-bottom": {
+        name: "Doubles Alley",
+        text: "The 4.5-ft strip between the singles and doubles sidelines. Only in play during doubles — a ball landing here is out in singles."
+      },
+      "sb-left-top": {
+        name: "Service Box · Deuce Court",
+        text: "A valid serve from the opposite side must land inside the diagonally-opposite service box. The first point of every game is served into the deuce box."
+      },
+      "sb-left-bottom": {
+        name: "Service Box · Ad Court",
+        text: "Serves on every odd-tally point (15-0, 30-15, ad, etc.) are delivered into this box from the opposite side of the net."
+      },
+      "sb-right-top": {
+        name: "Service Box · Ad Court",
+        text: "Serves on every odd-tally point (15-0, 30-15, ad, etc.) are delivered into this box from the opposite side of the net."
+      },
+      "sb-right-bottom": {
+        name: "Service Box · Deuce Court",
+        text: "A valid serve from the opposite side must land inside the diagonally-opposite service box. The first point of every game is served into the deuce box."
+      },
+      "nml-left": {
+        name: "No-Man's Land",
+        text: "Between the service line and the baseline. Players avoid standing here during rallies — balls tend to land at your feet. Move forward to the net or back behind the baseline."
+      },
+      "nml-right": {
+        name: "No-Man's Land",
+        text: "Between the service line and the baseline. Players avoid standing here during rallies — balls tend to land at your feet. Move forward to the net or back behind the baseline."
+      },
+      "net": {
+        name: "The Net",
+        text: "3 ft high at the center, 3.5 ft on the posts. During a serve, the ball must clear the net cleanly. If it clips the net and still hits the proper service box, that is a \"Let\" — another serve is given. Once a service has been returned, the ball may clip the net and enter any part of the court area. Touching the net with your racket or body results in a loss of a point."
+      },
+      "singles-sideline": {
+        name: "Singles Sideline",
+        text: "The inner sideline that bounds a singles court. In singles play, any ball landing outside this line — even if it lands in the doubles alley — is out. It runs the full length of the court. If a ball lands on this line, it is still considered in."
+      },
+      "baseline": {
+        name: "Baseline",
+        text: "The back line on each side of the court. Serves are struck from behind it, and most rallies are played from just behind it. Any ball touching the line is in."
+      },
+      "service-line": {
+        name: "Service Line",
+        text: "Runs parallel to the net, 21 ft away. A valid serve must land between the net and this line, inside the correct service box."
+      },
+      "center-mark": {
+        name: "Center Mark",
+        text: "A small tick at the middle of each baseline that splits it into the deuce and ad sides. The server must stand on the correct side of this mark."
+      }
+    };
+
+    const tooltip   = document.getElementById('tooltip');
+    const ttEyebrow = document.getElementById('tt-eyebrow');
+    const ttName    = document.getElementById('tt-name');
+    const ttText    = document.getElementById('tt-text');
+
+    let activeId = null;
+    let mouseX = 0, mouseY = 0;
+    let rafPending = false;
+
+    function showTooltip(id) {
+      const data = INFO[id];
+      if (!data) return;
+      activeId = id;
+      ttEyebrow.textContent = 'Court area';
+      ttName.textContent    = data.name;
+      ttText.textContent    = data.text;
+      tooltip.classList.add('is-visible');
+      tooltip.setAttribute('aria-hidden', 'false');
     }
-  };
 
-  const tooltip = document.getElementById('tooltip');
-  const ttName = document.getElementById('tt-name');
-  const ttText = document.getElementById('tt-text');
+    function hideTooltip() {
+      activeId = null;
+      tooltip.classList.remove('is-visible');
+      tooltip.setAttribute('aria-hidden', 'true');
+    }
 
-  function showTooltip(id, target) {
-    const data = INFO[id];
-    if (!data) return;
+    function positionTooltip() {
+      rafPending = false;
+      if (!activeId) return;
+      const pad = 16;
+      const rect = tooltip.getBoundingClientRect();
+      const w = rect.width  || 260;
+      const h = rect.height || 90;
 
-    ttName.textContent = data.name;
-    ttText.textContent = data.text;
+      // Default: down-right of cursor. Flip near edges.
+      let x = mouseX + pad;
+      let y = mouseY + pad;
+      if (x + w > window.innerWidth  - 8) x = mouseX - w - pad;
+      if (y + h > window.innerHeight - 8) y = mouseY - h - pad;
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
 
-    // Position near element instead of cursor
-    const rect = target.getBoundingClientRect();
+      tooltip.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    }
 
-    tooltip.style.transform = `translate(${rect.right + 10}px, ${rect.top}px)`;
-    tooltip.style.opacity = "1";
-  }
+    function onPointerMove(e) {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      if (!rafPending) {
+        rafPending = true;
+        requestAnimationFrame(positionTooltip);
+      }
+    }
 
-  function hideTooltip() {
-    tooltip.style.opacity = "1";
-  }
-
-  document.querySelectorAll('#court .zone, #court .line-zone')
-    .forEach(el => {
-
-      el.addEventListener('pointerover', (e) => {
-        showTooltip(el.dataset.id, el);
+    // Wire up every zone
+    document.querySelectorAll('#court .zone, #court .line-zone').forEach(el => {
+      el.addEventListener('mouseenter', () => showTooltip(el.dataset.id));
+      el.addEventListener('mouseleave', () => {
+        // Only hide if we didn't immediately enter another zone; we let
+        // the next mouseenter overwrite activeId. Use a microtask check.
+        const currentId = el.dataset.id;
+        queueMicrotask(() => {
+          if (activeId === currentId) hideTooltip();
+        });
       });
-
-      el.addEventListener('pointerout', () => {
-        hideTooltip();
-      });
-
     });
-</script>
 
+    // Track mouse position anywhere
+    window.addEventListener('mousemove', onPointerMove, { passive: true });
+    // Hide if mouse leaves the window entirely
+    window.addEventListener('mouseleave', hideTooltip);
+  </script>
 </body>
 </html>
